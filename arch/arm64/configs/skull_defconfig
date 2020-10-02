@@ -1543,6 +1543,7 @@ CONFIG_HAVE_EBPF_JIT=y
 
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # 3-party drivers
 #
 
@@ -1552,12 +1553,17 @@ CONFIG_HAVE_EBPF_JIT=y
 CONFIG_RTL8188EU=m
 CONFIG_88XXAU=m
 =======
+=======
+>>>>>>> 7df627223... add more stuffs to configs
 # Aditional WiFi adapter drivers for NetHunter by @S133PY
 #
 CONFIG_RTL8188EU=y
 # CONFIG_RTL8188FU is not set
 # CONFIG_88XXAU is not set
 # CONFIG_RTL8192EU is not set
+<<<<<<< HEAD
+>>>>>>> 7df627223... add more stuffs to configs
+=======
 >>>>>>> 7df627223... add more stuffs to configs
 CONFIG_ARM_AMBA=y
 
@@ -1573,8 +1579,11 @@ CONFIG_PREVENT_FIRMWARE_BUILD=y
 CONFIG_FW_LOADER=y
 CONFIG_FIRMWARE_IN_KERNEL=y
 <<<<<<< HEAD
+<<<<<<< HEAD
 CONFIG_EXTRA_FIRMWARE=""
 =======
+=======
+>>>>>>> 7df627223... add more stuffs to configs
 CONFIG_EXTRA_FIRMWARE_DIR="firmware"
 >>>>>>> 7df627223... add more stuffs to configs
 CONFIG_FW_LOADER_USER_HELPER=y
