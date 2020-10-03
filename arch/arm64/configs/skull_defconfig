@@ -1544,11 +1544,15 @@ CONFIG_HAVE_EBPF_JIT=y
 #
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3b29f4e02... add aircrack drivers for Realtek adapters
 # 3-party drivers
 #
 
 #
 # Aircrack
+<<<<<<< HEAD
 #
 CONFIG_RTL8188EU=m
 CONFIG_88XXAU=m
@@ -1565,6 +1569,11 @@ CONFIG_RTL8188EU=y
 >>>>>>> 7df627223... add more stuffs to configs
 =======
 >>>>>>> 7df627223... add more stuffs to configs
+=======
+#
+CONFIG_RTL8188EU=y
+CONFIG_88XXAU=m
+>>>>>>> 3b29f4e02... add aircrack drivers for Realtek adapters
 CONFIG_ARM_AMBA=y
 
 #
@@ -1580,12 +1589,16 @@ CONFIG_FW_LOADER=y
 CONFIG_FIRMWARE_IN_KERNEL=y
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 CONFIG_EXTRA_FIRMWARE=""
 =======
 =======
 >>>>>>> 7df627223... add more stuffs to configs
 CONFIG_EXTRA_FIRMWARE_DIR="firmware"
 >>>>>>> 7df627223... add more stuffs to configs
+=======
+CONFIG_EXTRA_FIRMWARE=""
+>>>>>>> 3b29f4e02... add aircrack drivers for Realtek adapters
 CONFIG_FW_LOADER_USER_HELPER=y
 CONFIG_FW_LOADER_USER_HELPER_FALLBACK=y
 # CONFIG_FW_CACHE is not set
