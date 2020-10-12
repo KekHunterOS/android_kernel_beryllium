@@ -5,6 +5,7 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+obj-y				+= 3party/
 obj-y				+= irqchip/
 obj-y				+= bus/
 
