@@ -2079,7 +2079,7 @@ void qdf_dp_display_proto_pkt_always(struct qdf_dp_trace_record_s *record,
 {
 	int loc;
 	char prepend_str[QDF_DP_TRACE_PREPEND_STR_SIZE];
-	struct qdf_dp_trace_proto_buf *buf __maybe_unused =
+	struct qdf_dp_trace_proto_buf *buf =
 		(struct qdf_dp_trace_proto_buf *)record->data;
 
 	qdf_mem_zero(prepend_str, sizeof(prepend_str));
@@ -2783,26 +2783,27 @@ QDF_STATUS qdf_dpt_dump_stats_debugfs(qdf_debugfs_file_t file,
 			break;
 
 		case QDF_DP_TRACE_HDD_TX_TIMEOUT:
-			qdf_debugfs_printf(file, "DPT: %04d: %s %s\n",
-				i, p_record.time,
-				qdf_dp_code_to_string(p_record.code));
-			qdf_debugfs_printf(file, "%s: HDD TX Timeout\n");
+			qdf_debugfs_printf(
+					file, "DPT: %04d: %llu %s\n",
+					i, p_record.time,
+					qdf_dp_code_to_string(p_record.code));
+			qdf_debugfs_printf(file, "HDD TX Timeout\n");
 			break;
 
 		case QDF_DP_TRACE_HDD_SOFTAP_TX_TIMEOUT:
-			qdf_debugfs_printf(file, "%04d: %s %s\n",
-				i, p_record.time,
-				qdf_dp_code_to_string(p_record.code));
-			qdf_debugfs_printf(file,
-					   "%s: HDD  SoftAP TX Timeout\n");
+			qdf_debugfs_printf(
+					file, "DPT: %04d: %llu %s\n",
+					i, p_record.time,
+					qdf_dp_code_to_string(p_record.code));
+			qdf_debugfs_printf(file, "HDD SoftAP TX Timeout\n");
 			break;
 
 		case QDF_DP_TRACE_CE_FAST_PACKET_ERR_RECORD:
-			qdf_debugfs_printf(file, "DPT: %04d: %s %s\n",
-				i, p_record.time,
-				qdf_dp_code_to_string(p_record.code));
-			qdf_debugfs_printf(file,
-					   "%s: CE Fast Packet Error\n");
+			qdf_debugfs_printf(
+					file, "DPT: %04d: %llu %s\n",
+					i, p_record.time,
+					qdf_dp_code_to_string(p_record.code));
+			qdf_debugfs_printf(file, "CE Fast Packet Error\n");
 			break;
 
 		case QDF_DP_TRACE_MAX:
@@ -3150,7 +3151,6 @@ static inline void print_to_console(char *str_buffer)
 }
 #endif
 
-#if 0
 #ifdef MULTI_IF_NAME
 static const char *qdf_trace_wlan_modname(void)
 {
@@ -3234,7 +3234,6 @@ void qdf_trace_msg_cmn(unsigned int idx,
 	}
 }
 qdf_export_symbol(qdf_trace_msg_cmn);
-#endif
 
 QDF_STATUS qdf_print_setup(void)
 {
@@ -3658,7 +3657,6 @@ QDF_STATUS qdf_print_set_category_verbose(unsigned int idx,
 }
 qdf_export_symbol(qdf_print_set_category_verbose);
 
-#if 0
 bool qdf_print_is_category_enabled(unsigned int idx, QDF_MODULE_ID category)
 {
 	QDF_TRACE_LEVEL verbose_mask;
@@ -3730,7 +3728,6 @@ bool qdf_print_is_verbose_enabled(unsigned int idx, QDF_MODULE_ID category,
 	return verbose_enabled;
 }
 qdf_export_symbol(qdf_print_is_verbose_enabled);
-#endif
 
 #ifdef DBG_LVL_MAC_FILTERING
 

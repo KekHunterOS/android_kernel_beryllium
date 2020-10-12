@@ -5837,6 +5837,46 @@ int wma_unified_beacon_debug_stats_event_handler(void *handle,
 }
 #endif
 
+#if defined(CLD_PM_QOS) && defined(WLAN_FEATURE_LL_MODE)
+int
+wma_vdev_bcn_latency_event_handler(void *handle,
+				   uint8_t *event_info,
+				   uint32_t len)
+{
+	WMI_VDEV_BCN_LATENCY_EVENTID_param_tlvs *param_buf = NULL;
+	wmi_vdev_bcn_latency_fixed_param *bcn_latency = NULL;
+	tpAniSirGlobal mac =
+			(tpAniSirGlobal)cds_get_context(QDF_MODULE_ID_PE);
+	uint32_t latency_level;
+
+	param_buf = (WMI_VDEV_BCN_LATENCY_EVENTID_param_tlvs *)event_info;
+	if (!param_buf) {
+		wma_err("Invalid bcn latency event");
+		return -EINVAL;
+	}
+
+	bcn_latency = param_buf->fixed_param;
+	if (!bcn_latency) {
+		wma_debug("beacon latency event fixed param is NULL");
+		return -EINVAL;
+	}
+
+	/* Map the latency value to the level which host expects
+	 * 1 - normal, 2 - moderate, 3 - low, 4 - ultralow
+	 */
+	latency_level = bcn_latency->latency_level + 1;
+	if (latency_level < 1 || latency_level > 4) {
+		wma_debug("invalid beacon latency level value");
+		return -EINVAL;
+	}
+
+	/* Call the registered sme callback */
+	mac->sme.beacon_latency_event_cb(latency_level);
+
+	return 0;
+}
+#endif
+
 int wma_chan_info_event_handler(void *handle, uint8_t *event_buf,
 				uint32_t len)
 {
@@ -6013,7 +6053,7 @@ int wma_wlan_bt_activity_evt_handler(void *handle, uint8_t *event, uint32_t len)
 		return -EINVAL;
 	}
 
-	WMA_LOGD(FL("Received BT activity event %u"),
+	WMA_LOGI(FL("Received BT activity event %u"),
 		    fixed_param->coex_profile_evt);
 
 	sme_msg.type = eWNI_SME_BT_ACTIVITY_INFO_IND;

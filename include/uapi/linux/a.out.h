@@ -1,4 +1,3 @@
-#include <linux/types.h>
 #ifndef _UAPI__A_OUT_GNU_H__
 #define _UAPI__A_OUT_GNU_H__
 

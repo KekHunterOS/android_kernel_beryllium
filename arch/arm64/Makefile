@@ -18,7 +18,7 @@ ifeq ($(CONFIG_RELOCATABLE), y)
 # Pass --no-apply-dynamic-relocs to restore pre-binutils-2.27 behaviour
 # for relative relocs, since this leads to better Image compression
 # with the relocation offsets always being zero.
-LDFLAGS_vmlinux		+= -pie -shared -Bsymbolic \
+LDFLAGS_vmlinux		+= -shared -Bsymbolic -z notext -z norelro \
 			$(call ld-option, --no-apply-dynamic-relocs)
 endif
 
@@ -69,7 +69,7 @@ ifeq ($(CONFIG_COMPAT_VDSO), y)
     export CLANG_TARGET_ARM32 := --target=$(notdir $(CLANG_TRIPLE_ARM32:%-=%))
     export GCC_TOOLCHAIN32_DIR := $(dir $(shell which $(CROSS_COMPILE_ARM32)ld))
     export GCC_TOOLCHAIN32 := $(realpath $(GCC_TOOLCHAIN32_DIR)/..)
-    export CLANG_PREFIX32 := --prefix=$(GCC_TOOLCHAIN32_DIR)
+    export CLANG_PREFIX32 := --prefix=$(GCC_TOOLCHAIN32_DIR)$(notdir $(CROSS_COMPILE_ARM32))
     export CLANG_GCC32_TC := --gcc-toolchain=$(GCC_TOOLCHAIN32)
     export CONFIG_VDSO32 := y
     vdso32 := -DCONFIG_VDSO32=1
@@ -88,16 +88,44 @@ KBUILD_CFLAGS	+= $(call cc-option, -mpc-relative-literal-loads)
 KBUILD_CFLAGS	+= -fno-pic
 KBUILD_AFLAGS	+= $(lseinstr) $(vdso32)
 
+KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
+KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
+
+ifeq ($(CONFIG_SHADOW_CALL_STACK), y)
+KBUILD_CFLAGS	+= -ffixed-x18
+endif
+
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
 AS		+= -EB
 LD		+= -EB
+LDFLAGS		+= -maarch64elfb
 UTS_MACHINE	:= aarch64_be
 else
 KBUILD_CPPFLAGS	+= -mlittle-endian
 AS		+= -EL
 LD		+= -EL
+LDFLAGS		+= -maarch64elf
 UTS_MACHINE	:= aarch64
+endif
+
+# SDM845 Optimization
+ifeq ($(cc-name),clang)
+KBUILD_CFLAGS	+=	$(call cc-option,-mcpu=cortex-a55,) \
+					$(call cc-option,-march=armv8.2-a,) \
+					$(call cc-option,-mtune=cortex-a55,)
+
+KBUILD_AFLAGS	+=	$(call cc-option,-mcpu=cortex-a55,) \
+					$(call cc-option,-march=armv8.2-a,) \
+					$(call cc-option,-mtune=cortex-a55,)
+else
+KBUILD_CFLAGS	+=	$(call cc-option,-mcpu=cortex-a75.cortex-a55,) \
+					$(call cc-option,-march=armv8.2-a,) \
+					$(call cc-option,-mtune=cortex-a75.cortex-a55,)
+
+KBUILD_AFLAGS	+=	$(call cc-option,-mcpu=cortex-a75.cortex-a55,) \
+					$(call cc-option,-march=armv8.2-a,) \
+					$(call cc-option,-mtune=cortex-a75.cortex-a55,)
 endif
 
 CHECKFLAGS	+= -D__aarch64__

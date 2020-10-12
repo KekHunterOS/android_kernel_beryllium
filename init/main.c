@@ -82,6 +82,8 @@
 #include <linux/io.h>
 #include <linux/kaiser.h>
 #include <linux/cache.h>
+#include <linux/jump_label.h>
+#include <linux/scs.h>
 
 #include <asm/io.h>
 #include <asm/bugs.h>
@@ -128,6 +130,20 @@ static char *initcall_command_line;
 
 static char *execute_command;
 static char *ramdisk_execute_command;
+
+static unsigned int android_version = CONFIG_DEFAULT_ANDROID_VERSION;
+
+static int __init set_android_version(char *val)
+{
+	get_option(&val, &android_version);
+	return 0;
+}
+__setup("androidboot.version=", set_android_version);
+
+unsigned int get_android_version(void)
+{
+	return android_version;
+}
 
 /*
  * Used to generate warnings if static_key manipulation functions are used
@@ -484,6 +500,8 @@ asmlinkage __visible void __init start_kernel(void)
 	char *after_dashes;
 
 	set_task_stack_end_magic(&init_task);
+	scs_set_init_magic(&init_task);
+
 	smp_setup_processor_id();
 	debug_objects_early_init();
 
@@ -511,7 +529,7 @@ asmlinkage __visible void __init start_kernel(void)
 	smp_prepare_boot_cpu();	/* arch-specific boot-cpu hooks */
 	boot_cpu_hotplug_init();
 
-	build_all_zonelists(NULL, NULL);
+	build_all_zonelists(NULL, NULL, false);
 	page_alloc_init();
 
 	pr_notice("Kernel command line: %s\n", boot_command_line);
@@ -954,6 +972,7 @@ static int __ref kernel_init(void *unused)
 	kernel_init_freeable();
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
+	jump_label_invalidate_initmem();
 	free_initmem();
 	mark_readonly();
 	system_state = SYSTEM_RUNNING;

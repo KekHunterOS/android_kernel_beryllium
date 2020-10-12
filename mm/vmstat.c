@@ -932,6 +932,9 @@ const char * const vmstat_text[] = {
 	"nr_slab_unreclaimable",
 	"nr_page_table_pages",
 	"nr_kernel_stack",
+#if IS_ENABLED(CONFIG_SHADOW_CALL_STACK)
+	"nr_shadow_call_stack_bytes",
+#endif
 	"nr_overhead",
 	"nr_bounce",
 #if IS_ENABLED(CONFIG_ZSMALLOC)
@@ -1699,7 +1702,7 @@ static void vmstat_shepherd(struct work_struct *w)
 	}
 	put_online_cpus();
 
-	schedule_delayed_work(&shepherd,
+	queue_delayed_work(system_power_efficient_wq, &shepherd,
 		round_jiffies_relative(sysctl_stat_interval));
 }
 
@@ -1712,7 +1715,7 @@ static void __init start_shepherd_timer(void)
 			vmstat_update);
 
 	vmstat_wq = alloc_workqueue("vmstat", WQ_FREEZABLE|WQ_MEM_RECLAIM, 0);
-	schedule_delayed_work(&shepherd,
+	queue_delayed_work(system_power_efficient_wq, &shepherd,
 		round_jiffies_relative(sysctl_stat_interval));
 }
 

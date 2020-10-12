@@ -1,6 +1,7 @@
 
 #include <linux/sched.h>
 #include <linux/sched/sysctl.h>
+#include <linux/sched/topology.h>
 #include <linux/sched/rt.h>
 #include <linux/sched/smt.h>
 #include <linux/u64_stats_sync.h>
@@ -2342,7 +2343,10 @@ static inline u64 irq_time_read(int cpu)
 u64 sched_ktime_clock(void);
 void note_task_waking(struct task_struct *p, u64 wallclock);
 #else /* CONFIG_SCHED_WALT */
-#define sched_ktime_clock ktime_get_ns
+static inline u64 sched_ktime_clock(void)
+{
+	return sched_clock();
+}
 static inline void note_task_waking(struct task_struct *p, u64 wallclock) { }
 #endif /* CONFIG_SCHED_WALT */
 

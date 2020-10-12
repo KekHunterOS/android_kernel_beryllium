@@ -21,6 +21,8 @@
 #include <linux/sort.h>
 #include <linux/debugfs.h>
 #include <linux/ktime.h>
+#include <linux/cpu_input_boost.h>
+#include <linux/devfreq_boost.h>
 #include <uapi/drm/sde_drm.h>
 #include <drm/drm_mode.h>
 #include <drm/drm_crtc.h>
@@ -771,10 +773,10 @@ static ssize_t measured_fps_show(struct device *device,
 	struct drm_crtc *crtc;
 	struct sde_crtc *sde_crtc;
 	unsigned int fps_int, fps_decimal;
-	int fps = 0, frame_count = 1;
+	u64 fps = 0, frame_count = 1;
 	ktime_t current_time;
 	int i = 0, current_time_index;
-	int diff_us;
+	u64 diff_us;
 
 	if (!device || !buf) {
 		SDE_ERROR("invalid input param(s)\n");
@@ -3930,6 +3932,9 @@ void sde_crtc_commit_kickoff(struct drm_crtc *crtc,
 		return;
 
 	SDE_ATRACE_BEGIN("crtc_commit");
+
+	cpu_input_boost_kick();
+	devfreq_boost_kick(DEVFREQ_MSM_CPUBW);
 
 	is_error = _sde_crtc_prepare_for_kickoff_rot(dev, crtc);
 

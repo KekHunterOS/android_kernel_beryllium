@@ -589,8 +589,6 @@ extern struct ratelimit_state dm_ratelimit_state;
 #define DMEMIT(x...) sz += ((sz >= maxlen) ? \
 			  0 : scnprintf(result + sz, maxlen - sz, x))
 
-#define SECTOR_SHIFT 9
-
 /*
  * Definitions of return values from target end_io function.
  */
@@ -605,26 +603,22 @@ extern struct ratelimit_state dm_ratelimit_state;
 #define DM_MAPIO_REQUEUE	DM_ENDIO_REQUEUE
 #define DM_MAPIO_DELAY_REQUEUE	3
 
-#define dm_sector_div64(x, y)( \
-{ \
+#define dm_sector_div64(x, y)({ \
 	u64 _res; \
 	(x) = div64_u64_rem(x, y, &_res); \
 	_res; \
-} \
-)
+})
 
 /*
  * Ceiling(n / sz)
  */
 #define dm_div_up(n, sz) (((n) + (sz) - 1) / (sz))
 
-#define dm_sector_div_up(n, sz) ( \
-{ \
+#define dm_sector_div_up(n, sz) ({ \
 	sector_t _r = ((n) + (sz) - 1); \
 	sector_div(_r, (sz)); \
 	_r; \
-} \
-)
+})
 
 /*
  * ceiling(n / size) * size

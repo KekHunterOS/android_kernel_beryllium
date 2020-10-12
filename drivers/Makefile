@@ -12,9 +12,6 @@ obj-$(CONFIG_GENERIC_PHY)	+= phy/
 
 obj-$(CONFIG_VSERVICES_SUPPORT)	+= vservices/
 
-# Custom drivers from 3-party companies/open source projects (Skull-Duty/Team-420)
-obj-y				+= 3party/
-
 # GPIO must come after pinctrl as gpios may need to mux pins etc
 obj-$(CONFIG_PINCTRL)		+= pinctrl/
 obj-$(CONFIG_GPIOLIB)		+= gpio/
@@ -60,14 +57,9 @@ obj-y				+= char/
 # iommu/ comes before gpu as gpu are using iommu controllers
 obj-$(CONFIG_IOMMU_SUPPORT)	+= iommu/
 
-# gpu/ comes after char for AGP vs DRM startup and after iommu
-obj-y				+= gpu/
 
 obj-$(CONFIG_CONNECTOR)		+= connector/
 
-# i810fb and intelfb depend on char/agp/
-obj-$(CONFIG_FB_I810)           += video/fbdev/i810/
-obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
 
 obj-$(CONFIG_PARPORT)		+= parport/
 obj-$(CONFIG_NVM)		+= lightnvm/
@@ -82,6 +74,12 @@ obj-$(CONFIG_CRYPTO)		+= crypto/
 obj-$(CONFIG_SCSI)		+= scsi/
 obj-y				+= nvme/
 obj-$(CONFIG_ATA)		+= ata/
+
+# gpu/ comes after char for AGP vs DRM startup and after iommu
+obj-y				+= gpu/
+# i810fb and intelfb depend on char/agp/
+obj-$(CONFIG_FB_I810)           += video/fbdev/i810/
+obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
 obj-$(CONFIG_TARGET_CORE)	+= target/
 obj-$(CONFIG_MTD)		+= mtd/
 obj-$(CONFIG_SPI)		+= spi/
