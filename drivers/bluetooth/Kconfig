@@ -159,6 +159,7 @@ config BT_HCIUART_BCM
 config BT_HCIUART_QCA
 	bool "Qualcomm Atheros protocol support"
 	depends on BT_HCIUART
+	depends on BT_HCIUART_SERDEV
 	select BT_HCIUART_H4
 	select BT_QCA
 	help
@@ -344,7 +345,8 @@ config BT_WILINK
 
 config BT_QCOMSMD
 	tristate "Qualcomm SMD based HCI support"
-	depends on QCOM_SMD && QCOM_WCNSS_CTRL
+	depends on RPMSG || (COMPILE_TEST && RPMSG=n)
+	depends on QCOM_WCNSS_CTRL || (COMPILE_TEST && QCOM_WCNSS_CTRL=n)
 	select BT_QCA
 	help
 	  Qualcomm SMD based HCI driver.
