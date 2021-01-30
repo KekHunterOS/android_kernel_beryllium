@@ -1,0 +1,5 @@
+menu "Third party Drivers"
+
+source "3party/rtl8188eus/Kconfig"
+
+endmenu
