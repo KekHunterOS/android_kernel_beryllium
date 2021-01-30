@@ -111,6 +111,11 @@ struct qca_data {
 	u64 votes_off;
 };
 
+enum qca_speed_type {
+	QCA_INIT_SPEED = 1,
+	QCA_OPER_SPEED
+};
+
 static void __serial_clock_on(struct tty_struct *tty)
 {
 	/* TODO: Some chipset requires to enable UART clock on client
@@ -231,10 +236,10 @@ static void qca_wq_awake_device(struct work_struct *work)
 
 	BT_DBG("hu %p wq awake device", hu);
 
-	spin_lock(&qca->hci_ibs_lock);
-
 	/* Vote for serial clock */
 	serial_clock_vote(HCI_IBS_TX_VOTE_CLOCK_ON, hu);
+
+	spin_lock(&qca->hci_ibs_lock);
 
 	/* Send wake indication to device */
 	if (send_hci_ibs_cmd(HCI_IBS_WAKE_IND, hu) < 0)
@@ -260,10 +265,9 @@ static void qca_wq_awake_rx(struct work_struct *work)
 
 	BT_DBG("hu %p wq awake rx", hu);
 
-	spin_lock(&qca->hci_ibs_lock);
-
 	serial_clock_vote(HCI_IBS_RX_VOTE_CLOCK_ON, hu);
 
+	spin_lock(&qca->hci_ibs_lock);
 	qca->rx_ibs_state = HCI_IBS_RX_AWAKE;
 
 	/* Always acknowledge device wake up,
@@ -288,11 +292,7 @@ static void qca_wq_serial_rx_clock_vote_off(struct work_struct *work)
 
 	BT_DBG("hu %p rx clock vote off", hu);
 
-	spin_lock(&qca->hci_ibs_lock);
-
 	serial_clock_vote(HCI_IBS_RX_VOTE_CLOCK_OFF, hu);
-
-	spin_unlock(&qca->hci_ibs_lock);
 }
 
 static void qca_wq_serial_tx_clock_vote_off(struct work_struct *work)
@@ -303,8 +303,6 @@ static void qca_wq_serial_tx_clock_vote_off(struct work_struct *work)
 
 	BT_DBG("hu %p tx clock vote off", hu);
 
-	spin_lock(&qca->hci_ibs_lock);
-
 	/* Run HCI tx handling unlocked */
 	hci_uart_tx_wakeup(hu);
 
@@ -312,8 +310,6 @@ static void qca_wq_serial_tx_clock_vote_off(struct work_struct *work)
 	 * It is up to the tty driver to pend the clocks off until tx done.
 	 */
 	serial_clock_vote(HCI_IBS_TX_VOTE_CLOCK_OFF, hu);
-
-	spin_unlock(&qca->hci_ibs_lock);
 }
 
 static void hci_ibs_tx_idle_timeout(unsigned long arg)
@@ -344,7 +340,7 @@ static void hci_ibs_tx_idle_timeout(unsigned long arg)
 		/* Fall through */
 
 	default:
-		BT_ERR("Spurrious timeout tx state %d", qca->tx_ibs_state);
+		BT_ERR("Spurious timeout tx state %d", qca->tx_ibs_state);
 		break;
 	}
 
@@ -382,7 +378,7 @@ static void hci_ibs_wake_retrans_timeout(unsigned long arg)
 		/* Fall through */
 
 	default:
-		BT_ERR("Spurrious timeout tx state %d", qca->tx_ibs_state);
+		BT_ERR("Spurious timeout tx state %d", qca->tx_ibs_state);
 		break;
 	}
 
@@ -399,7 +395,7 @@ static int qca_open(struct hci_uart *hu)
 
 	BT_DBG("hu %p qca_open", hu);
 
-	qca = kzalloc(sizeof(struct qca_data), GFP_ATOMIC);
+	qca = kzalloc(sizeof(struct qca_data), GFP_KERNEL);
 	if (!qca)
 		return -ENOMEM;
 
@@ -529,11 +525,7 @@ static int qca_close(struct hci_uart *hu)
 
 	BT_DBG("hu %p qca close", hu);
 
-	spin_lock(&qca->hci_ibs_lock);
-
 	serial_clock_vote(HCI_IBS_VOTE_STATS_UPDATE, hu);
-
-	spin_unlock(&qca->hci_ibs_lock);
 
 	skb_queue_purge(&qca->tx_wait_q);
 	skb_queue_purge(&qca->txq);
@@ -859,6 +851,8 @@ static uint8_t qca_get_baudrate_value(int speed)
 		return QCA_BAUDRATE_2000000;
 	case 3000000:
 		return QCA_BAUDRATE_3000000;
+	case 3200000:
+		return QCA_BAUDRATE_3200000;
 	case 3500000:
 		return QCA_BAUDRATE_3500000;
 	default:
@@ -878,7 +872,7 @@ static int qca_set_baudrate(struct hci_dev *hdev, uint8_t baudrate)
 
 	cmd[4] = baudrate;
 
-	skb = bt_skb_alloc(sizeof(cmd), GFP_ATOMIC);
+	skb = bt_skb_alloc(sizeof(cmd), GFP_KERNEL);
 	if (!skb) {
 		BT_ERR("Failed to allocate memory for baudrate packet");
 		return -ENOMEM;
@@ -902,50 +896,100 @@ static int qca_set_baudrate(struct hci_dev *hdev, uint8_t baudrate)
 	return 0;
 }
 
+static unsigned int qca_get_speed(struct hci_uart *hu,
+				  enum qca_speed_type speed_type)
+{
+	unsigned int speed = 0;
+
+	if (speed_type == QCA_INIT_SPEED) {
+		if (hu->init_speed)
+			speed = hu->init_speed;
+		else if (hu->proto->init_speed)
+			speed = hu->proto->init_speed;
+	} else {
+		if (hu->oper_speed)
+			speed = hu->oper_speed;
+		else if (hu->proto->oper_speed)
+			speed = hu->proto->oper_speed;
+	}
+
+	return speed;
+}
+
+static int qca_check_speeds(struct hci_uart *hu)
+{
+	if (!qca_get_speed(hu, QCA_INIT_SPEED) ||
+	    !qca_get_speed(hu, QCA_OPER_SPEED))
+		return -EINVAL;
+
+	return 0;
+}
+
+static int qca_set_speed(struct hci_uart *hu, enum qca_speed_type speed_type)
+{
+	unsigned int speed, qca_baudrate;
+	int ret;
+
+	if (speed_type == QCA_INIT_SPEED) {
+		speed = qca_get_speed(hu, QCA_INIT_SPEED);
+		if (speed)
+			hci_uart_set_baudrate(hu, speed);
+	} else {
+		speed = qca_get_speed(hu, QCA_OPER_SPEED);
+		if (!speed)
+			return 0;
+
+		qca_baudrate = qca_get_baudrate_value(speed);
+		bt_dev_info(hu->hdev, "Set UART speed to %d", speed);
+		ret = qca_set_baudrate(hu->hdev, qca_baudrate);
+		if (ret)
+			return ret;
+
+		hci_uart_set_baudrate(hu, speed);
+	}
+
+	return 0;
+}
+
 static int qca_setup(struct hci_uart *hu)
 {
 	struct hci_dev *hdev = hu->hdev;
 	struct qca_data *qca = hu->priv;
 	unsigned int speed, qca_baudrate = QCA_BAUDRATE_115200;
 	int ret;
+	int soc_ver = 0;
 
-	BT_INFO("%s: ROME setup", hdev->name);
+	bt_dev_info(hdev, "ROME setup");
+	
+	ret = qca_check_speeds(hu);
+	if (ret)
+		return ret;
 
 	/* Patch downloading has to be done without IBS mode */
 	clear_bit(STATE_IN_BAND_SLEEP_ENABLED, &qca->flags);
 
 	/* Setup initial baudrate */
-	speed = 0;
-	if (hu->init_speed)
-		speed = hu->init_speed;
-	else if (hu->proto->init_speed)
-		speed = hu->proto->init_speed;
-
-	if (speed)
-		hci_uart_set_baudrate(hu, speed);
+	qca_set_speed(hu, QCA_INIT_SPEED);
 
 	/* Setup user speed if needed */
-	speed = 0;
-	if (hu->oper_speed)
-		speed = hu->oper_speed;
-	else if (hu->proto->oper_speed)
-		speed = hu->proto->oper_speed;
+	speed = qca_get_speed(hu, QCA_OPER_SPEED);
 
 	if (speed) {
-		qca_baudrate = qca_get_baudrate_value(speed);
-
-		BT_INFO("%s: Set UART speed to %d", hdev->name, speed);
-		ret = qca_set_baudrate(hdev, qca_baudrate);
-		if (ret) {
-			BT_ERR("%s: Failed to change the baud rate (%d)",
-			       hdev->name, ret);
+		ret = qca_set_speed(hu, QCA_OPER_SPEED);
+		if (ret)
 			return ret;
-		}
-		hci_uart_set_baudrate(hu, speed);
+		qca_baudrate = qca_get_baudrate_value(speed);
 	}
+	
+	/* Get QCA version information */
+	ret = qca_read_soc_version(hdev, &soc_ver);
+	if (ret)
+		return ret;
+
+	bt_dev_info(hdev, "QCA controller version 0x%08x", soc_ver);
 
 	/* Setup patch / NVM configurations */
-	ret = qca_uart_setup_rome(hdev, qca_baudrate);
+	ret = qca_uart_setup(hdev, qca_baudrate, QCA_ROME, soc_ver);
 	if (!ret) {
 		set_bit(STATE_IN_BAND_SLEEP_ENABLED, &qca->flags);
 		qca_debugfs_init(hdev);
@@ -990,3 +1034,4 @@ int __exit qca_deinit(void)
 {
 	return hci_uart_unregister_proto(&qca_proto);
 }
+
